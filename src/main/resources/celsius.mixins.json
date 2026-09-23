@@ -4,7 +4,7 @@
   "package": "cute.ame.celsius.Mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "World.BlockChangeMixin"
+    "BlockChangeMixin"
   ],
   "client": [],
   "injectors": {

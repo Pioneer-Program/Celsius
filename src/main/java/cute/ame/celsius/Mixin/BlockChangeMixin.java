@@ -1,4 +1,4 @@
-package cute.ame.celsius.Mixin.World;
+package cute.ame.celsius.Mixin;
 
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
 import cute.ame.celsius.Thermal.Level.ThermalLevelData;
