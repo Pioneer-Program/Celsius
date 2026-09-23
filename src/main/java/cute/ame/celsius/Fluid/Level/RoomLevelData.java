@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class RoomLevelData extends SavedData
 {
-    public static final String FILE_ID = "pioneer_rooms";
+    public static final String FILE_ID = "celsius_rooms";
 
     private static final String K_NODES = "nodes";
     private static final String K_ORIGINS = "origins";

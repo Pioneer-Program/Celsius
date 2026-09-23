@@ -21,7 +21,7 @@ import java.util.List;
 
 public final class FluidLevelData extends SavedData implements FluidNodeStore.Listener
 {
-    public static final String FILE_ID = "pioneer_fluids";
+    public static final String FILE_ID = "celsius_fluids";
     private static final String K_SPECIES = "species";
     private static final String K_IDS = "ids";
     private static final String K_VOLUME = "vol";

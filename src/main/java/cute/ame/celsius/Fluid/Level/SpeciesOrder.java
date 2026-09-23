@@ -16,7 +16,7 @@ import java.util.Set;
 
 public final class SpeciesOrder extends SavedData
 {
-    public static final String FILE_ID = "pioneer_species_order";
+    public static final String FILE_ID = "celsius_species_order";
     private static final String K_ORDER = "order";
 
     private static final SavedData.Factory<SpeciesOrder> FACTORY = new SavedData.Factory<>(SpeciesOrder::new, SpeciesOrder::load, null);

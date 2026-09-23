@@ -16,7 +16,7 @@ import java.util.Arrays;
 
 public final class ThermalLevelData extends SavedData
 {
-    public static final String FILE_ID = "pioneer_thermal";
+    public static final String FILE_ID = "celsius_thermal";
 
     private static final String K_POSITIONS = "pos";
     private static final String K_KELVIN = "k";
