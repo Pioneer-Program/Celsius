@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cute.ame.celsius.Mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "World.BlockChangeMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
