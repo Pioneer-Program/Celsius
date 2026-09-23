@@ -1,6 +1,6 @@
 Celsius is a thermal and fluid physic for Minecraft, for 1.21.1 neoforge
 
-Maven package:
+Gradle package:
 ```shell
 repositories {
     maven {
@@ -12,4 +12,9 @@ repositories {
 dependencies {
     implementation "com.github.Pioneer-Program:Celsius:${celsius_version}"
 }
+```
+
+in `gradle.properties`:
+```html
+celsius_version=dev-SNAPSHOT
 ```
