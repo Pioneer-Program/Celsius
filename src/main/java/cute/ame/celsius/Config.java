@@ -1,20 +1,104 @@
 package cute.ame.celsius;
 
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-@EventBusSubscriber(modid = Celsius.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class Config
 {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
+    public static ModConfigSpec.DoubleValue ROOM_LITRES_PER_BLOCK;
+    public static ModConfigSpec.IntValue ROOM_MAX_BLOCKS;
+    public static ModConfigSpec.IntValue ROOM_RESCANS_PER_TICK;
+
+    public static ModConfigSpec.DoubleValue AMBIENT_EQUALIZE_RATE;
+    public static ModConfigSpec.DoubleValue AMBIENT_EQUALIZE_EPSILON;
+
+    public static ModConfigSpec.IntValue VESSEL_MAX_CLUSTER;
+    public static ModConfigSpec.IntValue FLUID_SWEEPS_PER_TICK;
+
+    public static ModConfigSpec.DoubleValue FLUID_SLEEP_EPSILON;
+    public static ModConfigSpec.IntValue FLUID_SLEEP_TICKS;
+    public static ModConfigSpec.DoubleValue FLUID_SLEEP_TEMPERATURE_EPSILON;
+    public static ModConfigSpec.DoubleValue FLUID_THERMAL_CONDUCTANCE;
+
+    public static ModConfigSpec.BooleanValue BURST_ENABLED;
+    public static ModConfigSpec.DoubleValue BURST_JITTER;
+    public static ModConfigSpec.DoubleValue BURST_SCREEN_PRESSURE;
+
+    public static ModConfigSpec.IntValue NODE_PROCESSOR_BUDGET;
+
+    public static ModConfigSpec.DoubleValue FLUID_BLOCK_COUPLING;
+    public static ModConfigSpec.IntValue FLUID_COUPLING_PERIOD;
+    public static ModConfigSpec.IntValue FLUID_COUPLING_SAMPLES;
+    public static ModConfigSpec.DoubleValue VACUUM_BLOCK_TEMPERATURE_K;
+
+    public static ModConfigSpec.DoubleValue THERMAL_ATTACH_DELTA_K;
+    public static ModConfigSpec.DoubleValue THERMAL_DETACH_DELTA_K;
+    public static ModConfigSpec.IntValue THERMAL_MAX_ENTRIES;
+    public static ModConfigSpec.IntValue THERMAL_SETTLE_GRACE;
+
+    public static ModConfigSpec.IntValue THERMAL_PERIOD;
+    public static ModConfigSpec.IntValue THERMAL_UPDATES_PER_TICK;
+    public static ModConfigSpec.DoubleValue THERMAL_TIME_SCALE;
+    public static ModConfigSpec.DoubleValue THERMAL_MAX_STEP;
+    public static ModConfigSpec.DoubleValue THERMAL_EPSILON_K;
+
+    public static ModConfigSpec.BooleanValue THERMAL_BREAKDOWN;
+    public static ModConfigSpec.IntValue THERMAL_BREAKDOWN_PER_PASS;
+
+    public static ModConfigSpec.BooleanValue THERMAL_RADIATION;
+    public static ModConfigSpec.DoubleValue THERMAL_SPACE_SINK_K;
+
+    static final ModConfigSpec SPEC;
+    static
+    {
+        BUILDER.push("Fluids");
+        ROOM_LITRES_PER_BLOCK = BUILDER.defineInRange("room_litres_per_block", 200.0, 1.0, 1000.0);
+        ROOM_MAX_BLOCKS = BUILDER.defineInRange("room_max_blocks", 4096, 64, 65_536);
+        ROOM_RESCANS_PER_TICK = BUILDER.defineInRange("room_rescans_per_tick", 1, 1, 16);
+
+        AMBIENT_EQUALIZE_RATE = BUILDER.defineInRange("ambient_equalize_rate", 0.25, 0.001, 1.0);
+        AMBIENT_EQUALIZE_EPSILON = BUILDER.defineInRange("ambient_equalize_epsilon", 1.0e-4, 0.0, 1.0);
+
+        VESSEL_MAX_CLUSTER = BUILDER.defineInRange("vessel_max_cluster", 4096, 8, 65_536);
+        FLUID_SWEEPS_PER_TICK = BUILDER.defineInRange("fluid_sweeps_per_tick", 1, 1, 8);
+
+        FLUID_SLEEP_EPSILON = BUILDER.defineInRange("fluid_sleep_epsilon", 1.0e-5, 0.0, 1.0);
+        FLUID_SLEEP_TICKS = BUILDER.defineInRange("fluid_sleep_ticks", 20, 1, 1200);
+        FLUID_SLEEP_TEMPERATURE_EPSILON = BUILDER.defineInRange("fluid_sleep_temperature_epsilon", 0.01, 0.0, 100.0);
+        FLUID_THERMAL_CONDUCTANCE = BUILDER.defineInRange("fluid_thermal_conductance", 0.05, 0.0, 1.0);
+
+        BURST_ENABLED = BUILDER.define("burst_enabled", true);
+        BURST_JITTER = BUILDER.defineInRange("burst_jitter", 0.15, 0.0, 0.9);
+        BURST_SCREEN_PRESSURE = BUILDER.defineInRange("burst_screen_pressure", 8.0, 0.1, 1000.0);
+
+        NODE_PROCESSOR_BUDGET = BUILDER.defineInRange("node_processor_budget", 4096, 1, 1_000_000);
+
+        FLUID_BLOCK_COUPLING = BUILDER.defineInRange("fluid_block_coupling", 0.001, 0.0, 1.0);
+        FLUID_COUPLING_PERIOD = BUILDER.defineInRange("fluid_coupling_period", 20, 1, 200);
+        FLUID_COUPLING_SAMPLES = BUILDER.defineInRange("fluid_coupling_samples", 4, 1, 64);
+        VACUUM_BLOCK_TEMPERATURE_K = BUILDER.defineInRange("vacuum_block_temperature_k", 293.15, 0.1, 1000.0);
+        BUILDER.pop();
+
+        BUILDER.push("Thermal");
+        THERMAL_ATTACH_DELTA_K = BUILDER.defineInRange("thermal_attach_delta_k", 2.0, 0.01, 1000.0);
+        THERMAL_DETACH_DELTA_K = BUILDER.defineInRange("thermal_detach_delta_k", 0.05, 0.0, 1000.0);
+        THERMAL_MAX_ENTRIES = BUILDER.defineInRange("thermal_max_entries", 65_536, 256, 1_048_576);
+        THERMAL_SETTLE_GRACE = BUILDER.defineInRange("thermal_settle_grace", 20, 1, 1000);
+
+        THERMAL_PERIOD = BUILDER.defineInRange("thermal_period", 4, 1, 200);
+        THERMAL_UPDATES_PER_TICK = BUILDER.defineInRange("thermal_updates_per_tick", 512, 16, 65_536);
+        THERMAL_TIME_SCALE = BUILDER.defineInRange("thermal_time_scale", 2000.0, 1.0, 1.0e6);
+        THERMAL_MAX_STEP = BUILDER.defineInRange("thermal_max_step", 1.0 / 6.0, 0.001, 0.5);
+        THERMAL_EPSILON_K = BUILDER.defineInRange("thermal_epsilon_k", 1.0e-4, 0.0, 1.0);
+
+        THERMAL_BREAKDOWN = BUILDER.define("thermal_breakdown", true);
+        THERMAL_BREAKDOWN_PER_PASS = BUILDER.defineInRange("thermal_breakdown_per_pass", 64, 1, 4096);
+
+        THERMAL_RADIATION = BUILDER.define("thermal_radiation", true);
+        THERMAL_SPACE_SINK_K = BUILDER.defineInRange("thermal_space_sink_k", 2.7, 0.0, 400.0);
+        BUILDER.pop();
+
+        SPEC = BUILDER.build();
+    }
 }

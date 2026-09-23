@@ -5,8 +5,11 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.147'
 }
 
-version = mod_version
-group = mod_group_id
+def passedGroup = findProperty('group')?.toString()
+def passedVersion = findProperty('version')?.toString()
+
+group = passedGroup ? passedGroup : mod_group_id
+version = (passedVersion && passedVersion != 'unspecified') ? passedVersion : mod_version
 
 repositories {
     mavenLocal()
@@ -151,11 +154,10 @@ publishing {
             from components.java
         }
     }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/repo"
-        }
-    }
+}
+
+java {
+    withSourcesJar()
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
