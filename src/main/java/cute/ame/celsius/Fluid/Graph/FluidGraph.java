@@ -23,6 +23,20 @@ public final class FluidGraph
             Direction.SOUTH
     };
 
+    private static final int[] FORWARD_PORT =
+    {
+            FluidVesselBlock.port(Direction.EAST),
+            FluidVesselBlock.port(Direction.UP),
+            FluidVesselBlock.port(Direction.SOUTH)
+    };
+
+    private static final int[] BACKWARD_PORT =
+    {
+            FluidVesselBlock.port(Direction.WEST),
+            FluidVesselBlock.port(Direction.DOWN),
+            FluidVesselBlock.port(Direction.NORTH)
+    };
+
     public static final double SETTLED = 1.0;
     private final LongOpenHashSet vessels = new LongOpenHashSet();
     private final Long2IntOpenHashMap outletEdge = new Long2IntOpenHashMap();
@@ -61,6 +75,11 @@ public final class FluidGraph
     public void invalidate()
     {
         dirty = true;
+    }
+
+    public void invalidateAt(BlockPos pos)
+    {
+        if (vessels.contains(pos.asLong())) dirty = true;
     }
 
     public boolean isDirty()
@@ -245,21 +264,27 @@ public final class FluidGraph
                 }
             }
 
+            int ports = vessel.ports(state);
+            if (ports == FluidVesselBlock.NO_PORTS) continue;
+
             Direction outlet = vessel.outlet(state);
             if (outlet != null)
             {
-                maxNodeId = Math.max(maxNodeId, addDirectedEdges(level, store, pos, outlet, node, here, vessel.boost(level, pos, state)));
+                maxNodeId = Math.max(maxNodeId, addDirectedEdges(level, store, pos, outlet, ports, node, here, vessel.boost(level, pos, state)));
                 continue;
             }
 
-            for (Direction direction : FORWARD)
+            for (int d = 0; d < FORWARD.length; d++)
             {
-                cursor.setWithOffset(pos, direction);
+                if ((ports & FORWARD_PORT[d]) == 0) continue;
+
+                cursor.setWithOffset(pos, FORWARD[d]);
                 if (!vessels.contains(cursor.asLong())) continue;
 
                 BlockState neighbourState = level.getBlockState(cursor);
                 if (!(neighbourState.getBlock() instanceof FluidVesselBlock neighbourVessel)) continue;
                 if (neighbourVessel.outlet(neighbourState) != null) continue;
+                if ((neighbourVessel.ports(neighbourState) & BACKWARD_PORT[d]) == 0) continue;
 
                 float there = neighbourVessel.conductance(level, cursor, neighbourState);
                 if (there <= 0.0f) continue;
@@ -293,15 +318,22 @@ public final class FluidGraph
         Arrays.fill(activity, Double.MAX_VALUE);
     }
 
-    private int addDirectedEdges(ServerLevel level, FluidNodeStore store, BlockPos pos, Direction outlet, int node, float conductance, float boost)
+    private int addDirectedEdges(ServerLevel level, FluidNodeStore store, BlockPos pos, Direction outlet, int ports, int node, float conductance, float boost)
     {
         int max = node;
+        Direction inlet = outlet.getOpposite();
 
-        int edge = edgeCount;
-        max = Math.max(max, linkDirected(level, store, pos.relative(outlet), node, conductance, boost, true));
-        if (edgeCount > edge) outletEdge.put(pos.asLong(), edge);
+        if ((ports & FluidVesselBlock.port(outlet)) != 0)
+        {
+            int edge = edgeCount;
+            max = Math.max(max, linkDirected(level, store, pos.relative(outlet), inlet, node, conductance, boost, true));
+            if (edgeCount > edge) outletEdge.put(pos.asLong(), edge);
+        }
 
-        max = Math.max(max, linkDirected(level, store, pos.relative(outlet.getOpposite()), node, conductance, 0.0f, false));
+        if ((ports & FluidVesselBlock.port(inlet)) != 0)
+        {
+            max = Math.max(max, linkDirected(level, store, pos.relative(inlet), outlet, node, conductance, 0.0f, false));
+        }
         return max;
     }
 
@@ -323,12 +355,13 @@ public final class FluidGraph
         return true;
     }
 
-    private int linkDirected(ServerLevel level, FluidNodeStore store, BlockPos side, int node, float conductance, float boost, boolean outward)
+    private int linkDirected(ServerLevel level, FluidNodeStore store, BlockPos side, Direction face, int node, float conductance, float boost, boolean outward)
     {
         if (!vessels.contains(side.asLong())) return node;
 
         BlockState state = level.getBlockState(side);
         if (!(state.getBlock() instanceof FluidVesselBlock vessel)) return node;
+        if ((vessel.ports(state) & FluidVesselBlock.port(face)) == 0) return node;
 
         float there = vessel.conductance(level, side, state);
         if (there <= 0.0f) return node;

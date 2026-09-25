@@ -17,6 +17,9 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class FluidVesselBlock extends Block implements EntityBlock
 {
+    public static final int NO_PORTS = 0;
+    public static final int ALL_PORTS = 0b111111;
+
     protected FluidVesselBlock(BlockBehaviour.Properties properties)
     {
         super(properties);
@@ -34,6 +37,16 @@ public abstract class FluidVesselBlock extends Block implements EntityBlock
     public float conductance(Level level, BlockPos pos, BlockState state)
     {
         return getConductance();
+    }
+
+    public static int port(Direction direction)
+    {
+        return 1 << direction.get3DDataValue();
+    }
+
+    public int ports(BlockState state)
+    {
+        return ALL_PORTS;
     }
 
     public @Nullable Direction outlet(BlockState state)
