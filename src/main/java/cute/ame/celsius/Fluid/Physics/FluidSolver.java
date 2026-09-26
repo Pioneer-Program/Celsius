@@ -27,7 +27,7 @@ public final class FluidSolver
             boolean directed = drive >= 0.0f;
             double gap = directed ? (potentialA + drive) - potentialB : potentialA - potentialB;
 
-            if (directed && gap <= 0.0)
+            if (directed && (gap <= 0.0 || store.moles(a) <= 0.0f))
             {
                 double temperatureIdle = Math.abs(store.temperature(a) - store.temperature(b));
                 if (temperatureIdle / temperatureEpsilon > activity) activity = temperatureIdle / temperatureEpsilon;

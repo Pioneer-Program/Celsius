@@ -49,6 +49,21 @@ public abstract class FluidVesselBlock extends Block implements EntityBlock
         return ALL_PORTS;
     }
 
+    public int filterPorts(BlockState state)
+    {
+        return NO_PORTS;
+    }
+
+    public @Nullable String filterSpecies(Level level, BlockPos pos, BlockState state)
+    {
+        return null;
+    }
+
+    public float filterRate(Level level, BlockPos pos, BlockState state)
+    {
+        return 0.0f;
+    }
+
     public @Nullable Direction outlet(BlockState state)
     {
         return null;

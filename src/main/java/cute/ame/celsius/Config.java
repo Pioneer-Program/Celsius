@@ -20,6 +20,7 @@ public class Config
     public static ModConfigSpec.IntValue FLUID_SLEEP_TICKS;
     public static ModConfigSpec.DoubleValue FLUID_SLEEP_TEMPERATURE_EPSILON;
     public static ModConfigSpec.DoubleValue FLUID_THERMAL_CONDUCTANCE;
+    public static ModConfigSpec.DoubleValue FLUID_FILTER_MIN_MOL;
 
     public static ModConfigSpec.BooleanValue BURST_ENABLED;
     public static ModConfigSpec.DoubleValue BURST_JITTER;
@@ -67,6 +68,7 @@ public class Config
         FLUID_SLEEP_TICKS = BUILDER.defineInRange("fluid_sleep_ticks", 20, 1, 1200);
         FLUID_SLEEP_TEMPERATURE_EPSILON = BUILDER.defineInRange("fluid_sleep_temperature_epsilon", 0.01, 0.0, 100.0);
         FLUID_THERMAL_CONDUCTANCE = BUILDER.defineInRange("fluid_thermal_conductance", 0.05, 0.0, 1.0);
+        FLUID_FILTER_MIN_MOL = BUILDER.defineInRange("fluid_filter_min_mol", 1.0e-4, 0.0, 1.0);
 
         BURST_ENABLED = BUILDER.define("burst_enabled", true);
         BURST_JITTER = BUILDER.defineInRange("burst_jitter", 0.15, 0.0, 0.9);

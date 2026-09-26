@@ -1,5 +1,6 @@
 package cute.ame.celsius.Fluid.Event;
 
+import cute.ame.celsius.Fluid.Physics.FluidFilter;
 import cute.ame.celsius.Fluid.Physics.FluidSolver;
 
 import cute.ame.celsius.Config;
@@ -48,7 +49,7 @@ public final class FluidSolverTickEvents
         float[] conductance = graph.conductanceRaw();
         float[] boost = graph.boostRaw();
 
-        boolean moved = false;
+        boolean moved = filter(store, graph, partition, molarHeat);
 
         for (int c = 0; c < partition.count(); c++)
         {
@@ -74,5 +75,32 @@ public final class FluidSolverTickEvents
         }
 
         if (moved) data.setDirty();
+    }
+
+    private static boolean filter(FluidNodeStore store, FluidGraph graph, ComponentPartition.Result partition, float[] molarHeat)
+    {
+        int links = graph.linkCount();
+        if (links == 0) return false;
+
+        int[] linkA = graph.linkARaw();
+        int[] linkB = graph.linkBRaw();
+        int[] linkSpecies = graph.linkSpeciesRaw();
+        float[] linkRate = graph.linkRateRaw();
+        float minimum = Config.FLUID_FILTER_MIN_MOL.get().floatValue();
+
+        boolean moved = false;
+        for (int l = 0; l < links; l++)
+        {
+            int source = linkA[l];
+            if (graph.isAsleep(partition.componentOf(source))) continue;
+
+            float passed = FluidFilter.pass(store, source, linkB[l], linkSpecies[l], linkRate[l], molarHeat);
+            if (passed < minimum) continue;
+
+            graph.wakeNode(source);
+            graph.wakeNode(linkB[l]);
+            moved = true;
+        }
+        return moved;
     }
 }

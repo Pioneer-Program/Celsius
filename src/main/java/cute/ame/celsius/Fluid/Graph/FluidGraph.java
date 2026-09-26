@@ -3,6 +3,8 @@ package cute.ame.celsius.Fluid.Graph;
 import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
 import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
+import cute.ame.celsius.Fluid.Data.SpeciesTable;
+import cute.ame.celsius.Fluid.Registry.FluidSpecies;
 import cute.ame.celsius.Fluid.Physics.ComponentPartition;
 import cute.ame.celsius.Fluid.Physics.FluidSolver;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -11,6 +13,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
@@ -22,6 +26,8 @@ public final class FluidGraph
             Direction.UP,
             Direction.SOUTH
     };
+
+    private static final Direction[] DIRECTIONS = Direction.values();
 
     private static final int[] FORWARD_PORT =
     {
@@ -40,6 +46,7 @@ public final class FluidGraph
     public static final double SETTLED = 1.0;
     private final LongOpenHashSet vessels = new LongOpenHashSet();
     private final Long2IntOpenHashMap outletEdge = new Long2IntOpenHashMap();
+    private final Long2IntOpenHashMap filterStart = new Long2IntOpenHashMap();
 
     private boolean dirty = true;
 
@@ -49,6 +56,13 @@ public final class FluidGraph
     private float[] edgeConductance = new float[0];
     private float[] edgeBoost = new float[0];
     private int edgeCount;
+
+    private int[] linkA = new int[0];
+    private int[] linkB = new int[0];
+    private int[] linkSpecies = new int[0];
+    private float[] linkRate = new float[0];
+    private long[] linkOwner = new long[0];
+    private int linkCount;
 
     private long[] vesselOrder = new long[0];
     private int[] vesselStart = new int[1];
@@ -60,6 +74,7 @@ public final class FluidGraph
     public FluidGraph()
     {
         outletEdge.defaultReturnValue(-1);
+        filterStart.defaultReturnValue(-1);
     }
 
     public void track(BlockPos pos)
@@ -125,6 +140,31 @@ public final class FluidGraph
     public float[] boostRaw()
     {
         return edgeBoost;
+    }
+
+    public int linkCount()
+    {
+        return linkCount;
+    }
+
+    public int[] linkARaw()
+    {
+        return linkA;
+    }
+
+    public int[] linkBRaw()
+    {
+        return linkB;
+    }
+
+    public int[] linkSpeciesRaw()
+    {
+        return linkSpecies;
+    }
+
+    public float[] linkRateRaw()
+    {
+        return linkRate;
     }
 
     public int vesselStart(int nodeId)
@@ -212,6 +252,8 @@ public final class FluidGraph
 
         edgeCount = 0;
         outletEdge.clear();
+        linkCount = 0;
+        filterStart.clear();
         if (edgeA.length < capacity * 3) growEdges(capacity * 3);
 
         long[] scratchPos = new long[capacity];
@@ -267,16 +309,21 @@ public final class FluidGraph
             int ports = vessel.ports(state);
             if (ports == FluidVesselBlock.NO_PORTS) continue;
 
+            int filters = vessel.filterPorts(state) & ports;
+            if (filters != FluidVesselBlock.NO_PORTS) maxNodeId = Math.max(maxNodeId, addFilterLinks(level, store, pos, state, vessel, filters, node));
+
+            int open = ports & ~filters;
+
             Direction outlet = vessel.outlet(state);
             if (outlet != null)
             {
-                maxNodeId = Math.max(maxNodeId, addDirectedEdges(level, store, pos, outlet, ports, node, here, vessel.boost(level, pos, state)));
+                maxNodeId = Math.max(maxNodeId, addDirectedEdges(level, store, pos, outlet, open, node, here, vessel.boost(level, pos, state)));
                 continue;
             }
 
             for (int d = 0; d < FORWARD.length; d++)
             {
-                if ((ports & FORWARD_PORT[d]) == 0) continue;
+                if ((open & FORWARD_PORT[d]) == 0) continue;
 
                 cursor.setWithOffset(pos, FORWARD[d]);
                 if (!vessels.contains(cursor.asLong())) continue;
@@ -284,7 +331,7 @@ public final class FluidGraph
                 BlockState neighbourState = level.getBlockState(cursor);
                 if (!(neighbourState.getBlock() instanceof FluidVesselBlock neighbourVessel)) continue;
                 if (neighbourVessel.outlet(neighbourState) != null) continue;
-                if ((neighbourVessel.ports(neighbourState) & BACKWARD_PORT[d]) == 0) continue;
+                if ((openPorts(neighbourVessel, neighbourState) & BACKWARD_PORT[d]) == 0) continue;
 
                 float there = neighbourVessel.conductance(level, cursor, neighbourState);
                 if (there <= 0.0f) continue;
@@ -361,7 +408,7 @@ public final class FluidGraph
 
         BlockState state = level.getBlockState(side);
         if (!(state.getBlock() instanceof FluidVesselBlock vessel)) return node;
-        if ((vessel.ports(state) & FluidVesselBlock.port(face)) == 0) return node;
+        if ((openPorts(vessel, state) & FluidVesselBlock.port(face)) == 0) return node;
 
         float there = vessel.conductance(level, side, state);
         if (there <= 0.0f) return node;
@@ -374,6 +421,89 @@ public final class FluidGraph
         else addEdge(other, node, shared, boost);
 
         return other;
+    }
+
+    private int addFilterLinks(ServerLevel level, FluidNodeStore store, BlockPos pos, BlockState state, FluidVesselBlock vessel, int filters, int node)
+    {
+        int species = resolve(vessel.filterSpecies(level, pos, state));
+        float rate = vessel.filterRate(level, pos, state);
+        long owner = pos.asLong();
+        int start = linkCount;
+        int max = node;
+
+        BlockPos.MutableBlockPos side = new BlockPos.MutableBlockPos();
+        for (Direction direction : DIRECTIONS)
+        {
+            if ((filters & FluidVesselBlock.port(direction)) == 0) continue;
+
+            side.setWithOffset(pos, direction);
+            if (!vessels.contains(side.asLong())) continue;
+
+            BlockState neighbourState = level.getBlockState(side);
+            if (!(neighbourState.getBlock() instanceof FluidVesselBlock neighbourVessel)) continue;
+            if ((neighbourVessel.ports(neighbourState) & FluidVesselBlock.port(direction.getOpposite())) == 0) continue;
+
+            int other = nodeAt(level, side, store);
+            if (other == FluidNodeStore.INVALID || other == node) continue;
+
+            addLink(node, other, species, rate, owner);
+            if (other > max) max = other;
+        }
+
+        if (linkCount > start) filterStart.put(owner, start);
+        return max;
+    }
+
+    public boolean setFilterSpecies(BlockPos pos, @Nullable String key)
+    {
+        if (dirty) return false;
+
+        long owner = pos.asLong();
+        int start = filterStart.get(owner);
+        if (start < 0) return false;
+
+        int species = resolve(key);
+        boolean changed = false;
+        for (int l = start; l < linkCount && linkOwner[l] == owner; l++)
+        {
+            if (linkSpecies[l] == species) continue;
+
+            linkSpecies[l] = species;
+            changed = true;
+        }
+
+        if (changed) wakeNode(linkA[start]);
+        return changed;
+    }
+
+    private static int resolve(@Nullable String key)
+    {
+        return key == null || key.isEmpty() ? SpeciesTable.UNKNOWN : FluidSpecies.active().indexOf(key);
+    }
+
+    private static int openPorts(FluidVesselBlock vessel, BlockState state)
+    {
+        return vessel.ports(state) & ~vessel.filterPorts(state);
+    }
+
+    private void addLink(int a, int b, int species, float rate, long owner)
+    {
+        if (linkCount == linkA.length)
+        {
+            int next = Math.max(linkA.length * 2, 8);
+            linkA = Arrays.copyOf(linkA, next);
+            linkB = Arrays.copyOf(linkB, next);
+            linkSpecies = Arrays.copyOf(linkSpecies, next);
+            linkRate = Arrays.copyOf(linkRate, next);
+            linkOwner = Arrays.copyOf(linkOwner, next);
+        }
+
+        linkA[linkCount] = a;
+        linkB[linkCount] = b;
+        linkSpecies[linkCount] = species;
+        linkRate[linkCount] = rate;
+        linkOwner[linkCount] = owner;
+        linkCount++;
     }
 
     private void addEdge(int a, int b, float conductance, float boost)

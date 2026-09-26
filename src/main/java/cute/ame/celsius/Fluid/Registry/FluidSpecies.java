@@ -73,6 +73,7 @@ public final class FluidSpecies
             if (data == null) continue;
 
             data.store().remapSpecies(remap, next.size());
+            data.graph().invalidate();
             data.setDirty();
         }
     }
