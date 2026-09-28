@@ -317,7 +317,7 @@ public final class FluidGraph
             Direction outlet = vessel.outlet(state);
             if (outlet != null)
             {
-                maxNodeId = Math.max(maxNodeId, addDirectedEdges(level, store, pos, outlet, open, node, here, vessel.boost(level, pos, state)));
+                maxNodeId = Math.max(maxNodeId, addDirectedEdges(level, store, pos, outlet, vessel.inlet(state), open, node, here, vessel.boost(level, pos, state)));
                 continue;
             }
 
@@ -365,22 +365,18 @@ public final class FluidGraph
         Arrays.fill(activity, Double.MAX_VALUE);
     }
 
-    private int addDirectedEdges(ServerLevel level, FluidNodeStore store, BlockPos pos, Direction outlet, int ports, int node, float conductance, float boost)
+    private int addDirectedEdges(ServerLevel level, FluidNodeStore store, BlockPos pos, Direction outlet, @Nullable Direction inlet, int ports, int node, float conductance, float boost)
     {
         int max = node;
-        Direction inlet = outlet.getOpposite();
-
         if ((ports & FluidVesselBlock.port(outlet)) != 0)
         {
             int edge = edgeCount;
-            max = Math.max(max, linkDirected(level, store, pos.relative(outlet), inlet, node, conductance, boost, true));
+            max = Math.max(max, linkDirected(level, store, pos.relative(outlet), outlet.getOpposite(), node, conductance, boost, true));
             if (edgeCount > edge) outletEdge.put(pos.asLong(), edge);
         }
 
-        if ((ports & FluidVesselBlock.port(inlet)) != 0)
-        {
-            max = Math.max(max, linkDirected(level, store, pos.relative(inlet), outlet, node, conductance, 0.0f, false));
-        }
+        if (inlet != null && inlet != outlet && (ports & FluidVesselBlock.port(inlet)) != 0) max = Math.max(max, linkDirected(level, store, pos.relative(inlet), inlet.getOpposite(), node, conductance, 0.0f, false));
+
         return max;
     }
 

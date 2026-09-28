@@ -69,6 +69,12 @@ public abstract class FluidVesselBlock extends Block implements EntityBlock
         return null;
     }
 
+    public @Nullable Direction inlet(BlockState state)
+    {
+        Direction outlet = outlet(state);
+        return outlet == null ? null : outlet.getOpposite(); // not sure if it's a good idea tbh
+    }
+
     public float boost(Level level, BlockPos pos, BlockState state)
     {
         return 0.0f;
