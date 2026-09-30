@@ -41,6 +41,8 @@ public final class FluidSolverTickEvents
         float thermal = Config.FLUID_THERMAL_CONDUCTANCE.get().floatValue();
         double potentialEpsilon = Config.FLUID_SLEEP_EPSILON.get();
         double temperatureEpsilon = Config.FLUID_SLEEP_TEMPERATURE_EPSILON.get();
+        float diffusion = Config.FLUID_DIFFUSION_RATE.get().floatValue();
+        double fractionEpsilon = Config.FLUID_SLEEP_FRACTION_EPSILON.get();
 
         int[] edgeOrder = partition.edgeOrder();
         int[] edgeOffsets = partition.edgeOffsets();
@@ -67,7 +69,7 @@ public final class FluidSolverTickEvents
             double activity = 0.0;
             for (int pass = 0; pass < sweeps; pass++)
             {
-                activity = FluidSolver.sweep(store, edgeOrder, from, to, edgeA, edgeB, conductance, boost, molarHeat, thermal, potentialEpsilon, temperatureEpsilon);
+                activity = FluidSolver.sweep(store, edgeOrder, from, to, edgeA, edgeB, conductance, boost, molarHeat, thermal, potentialEpsilon, temperatureEpsilon, diffusion, fractionEpsilon);
             }
 
             graph.settle(c, activity, patience);

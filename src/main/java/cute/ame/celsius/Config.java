@@ -32,6 +32,8 @@ public class Config
     public static ModConfigSpec.IntValue FLUID_COUPLING_PERIOD;
     public static ModConfigSpec.IntValue FLUID_COUPLING_SAMPLES;
     public static ModConfigSpec.DoubleValue VACUUM_BLOCK_TEMPERATURE_K;
+    public static ModConfigSpec.DoubleValue FLUID_DIFFUSION_RATE;
+    public static ModConfigSpec.DoubleValue FLUID_SLEEP_FRACTION_EPSILON;
 
     public static ModConfigSpec.DoubleValue THERMAL_ATTACH_DELTA_K;
     public static ModConfigSpec.DoubleValue THERMAL_DETACH_DELTA_K;
@@ -80,6 +82,8 @@ public class Config
         FLUID_COUPLING_PERIOD = BUILDER.defineInRange("fluid_coupling_period", 20, 1, 200);
         FLUID_COUPLING_SAMPLES = BUILDER.defineInRange("fluid_coupling_samples", 4, 1, 64);
         VACUUM_BLOCK_TEMPERATURE_K = BUILDER.defineInRange("vacuum_block_temperature_k", 293.15, 0.1, 1000.0);
+        FLUID_DIFFUSION_RATE = BUILDER.defineInRange("fluid_diffusion_rate", 0.05, 0.0, 1.0);
+        FLUID_SLEEP_FRACTION_EPSILON = BUILDER.defineInRange("fluid_sleep_fraction_epsilon", 1.0e-4, 1.0e-9, 1.0);
         BUILDER.pop();
 
         BUILDER.push("Thermal");
