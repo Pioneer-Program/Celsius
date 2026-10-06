@@ -1,5 +1,6 @@
 package cute.ame.celsius.Fluid.Helper;
 
+import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -15,7 +16,10 @@ public final class Airtight
 
     public static boolean seals(BlockGetter level, BlockPos pos, BlockState state)
     {
-        if (state.isAir() || state.is(LEAKY)) return false;
+        if (state.isAir()) return false;
+        if (!state.getFluidState().isEmpty()) return true;
+        if (state.getBlock() instanceof FluidVesselBlock) return true;
+        if (state.is(LEAKY)) return false;
         if (state.is(AIRTIGHT)) return true;
 
         return state.isCollisionShapeFullBlock(level, pos);

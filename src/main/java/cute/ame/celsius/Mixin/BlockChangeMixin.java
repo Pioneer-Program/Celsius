@@ -1,5 +1,7 @@
 package cute.ame.celsius.Mixin;
 
+import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
+import cute.ame.celsius.Fluid.Level.FluidLevelData;
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
 import cute.ame.celsius.Thermal.Level.ThermalLevelData;
 import net.minecraft.core.BlockPos;
@@ -27,6 +29,16 @@ public abstract class BlockChangeMixin
         RoomLevelData rooms = RoomLevelData.getIfPresent(serverLevel);
         if (rooms != null) rooms.onBlockChanged(pos);
 
-        if (previous.getBlock() != state.getBlock()) ThermalLevelData.onBlockReplaced(serverLevel, pos);
+        if (previous.getBlock() != state.getBlock())
+        {
+            ThermalLevelData.onBlockReplaced(serverLevel, pos);
+            return;
+        }
+
+        if (state.getBlock() instanceof FluidVesselBlock vessel && vessel.ports(previous) != vessel.ports(state))
+        {
+            FluidLevelData fluids = FluidLevelData.getIfPresent(serverLevel);
+            if (fluids != null) fluids.graph().invalidateAt(pos);
+        }
     }
 }

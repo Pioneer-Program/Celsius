@@ -19,6 +19,7 @@ import cute.ame.celsius.Fluid.Physics.ComponentPartition;
 import cute.ame.celsius.Fluid.Graph.FluidGraph;
 import cute.ame.celsius.Fluid.Physics.FluidHeat;
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
+import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
 import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.SpeciesTable;
 import net.minecraft.ChatFormatting;
@@ -27,9 +28,11 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.state.BlockState;
 
 import static cute.ame.celsius.Command.CelsiusCommandFeedback.ERROR_PREFIX;
 import static cute.ame.celsius.Command.CelsiusCommandFeedback.PREFIX;
@@ -317,8 +320,21 @@ public final class FluidDebugCommand
             return 0;
         }
 
-        ctx.getSource().sendSuccess(() -> Component.literal(PREFIX + String.format(ChatFormatting.WHITE + "vessel " + ChatFormatting.DARK_GRAY + "%s " + ChatFormatting.GRAY + "-> node " + ChatFormatting.GOLD + "#%d " + ChatFormatting.GRAY + "| V = " + ChatFormatting.AQUA + "%.1f L " + ChatFormatting.GRAY + "| n = " + ChatFormatting.AQUA + "%.4f mol " + ChatFormatting.GRAY + "| P = " + ChatFormatting.GREEN + "%.5f P " + ChatFormatting.GRAY + "| bursts at " + ChatFormatting.RED + "%.2f P", pos.toShortString(), nodeId, store.volume(nodeId), store.moles(nodeId), store.pressure(nodeId), vessel.getBurstPressure())), false);
+        BlockState state = level.getBlockState(pos);
+        String ports = state.getBlock() instanceof FluidVesselBlock block ? ports(block.ports(state)) : "------";
+
+        ctx.getSource().sendSuccess(() -> Component.literal(PREFIX + String.format(ChatFormatting.WHITE + "vessel " + ChatFormatting.DARK_GRAY + "%s " + ChatFormatting.GRAY + "-> node " + ChatFormatting.GOLD + "#%d " + ChatFormatting.GRAY + "| V = " + ChatFormatting.AQUA + "%.1f L " + ChatFormatting.GRAY + "| n = " + ChatFormatting.AQUA + "%.4f mol " + ChatFormatting.GRAY + "| P = " + ChatFormatting.GREEN + "%.5f P " + ChatFormatting.GRAY + "| bursts at " + ChatFormatting.RED + "%.2f P " + ChatFormatting.GRAY + "| ports " + ChatFormatting.YELLOW + "%s", pos.toShortString(), nodeId, store.volume(nodeId), store.moles(nodeId), store.pressure(nodeId), vessel.getBurstPressure(), ports)), false);
         return nodeId + 1;
+    }
+
+    private static String ports(int mask)
+    {
+        char[] out = new char[6];
+        for (Direction direction : Direction.values())
+        {
+            out[direction.get3DDataValue()] = (mask & FluidVesselBlock.port(direction)) != 0 ? Character.toUpperCase(direction.getName().charAt(0)) : '-';
+        }
+        return new String(out);
     }
 
     private static int net(CommandContext<CommandSourceStack> ctx)
@@ -332,8 +348,7 @@ public final class FluidDebugCommand
 
         ComponentPartition.Result partition = graph.partition();
         CommandSourceStack source = ctx.getSource();
-
-        source.sendSuccess(() -> Component.literal(PREFIX + String.format(ChatFormatting.WHITE + "%d " + ChatFormatting.GRAY + "network(s) | " + ChatFormatting.GREEN + "%d awake " + ChatFormatting.GRAY + "| vessels = " + ChatFormatting.AQUA + "%d " + ChatFormatting.GRAY + "| edges = " + ChatFormatting.AQUA + "%d " + ChatFormatting.DARK_GRAY + "(%s)", partition.count(), graph.awakeCount(), graph.vesselCount(), graph.edgeCount(), level.dimension().location())), false);
+        source.sendSuccess(() -> Component.literal(PREFIX + String.format(ChatFormatting.WHITE + "%d " + ChatFormatting.GRAY + "network(s) | " + ChatFormatting.GREEN + "%d awake " + ChatFormatting.GRAY + "| vessels = " + ChatFormatting.AQUA + "%d " + ChatFormatting.GRAY + "| edges = " + ChatFormatting.AQUA + "%d " + ChatFormatting.GRAY + "| links = " + ChatFormatting.AQUA + "%d " + ChatFormatting.DARK_GRAY + "(%s)", partition.count(), graph.awakeCount(), graph.vesselCount(), graph.edgeCount(), graph.linkCount(), level.dimension().location())), false);
 
         for (int c = 0; c < partition.count() && c < LIST_LIMIT; c++)
         {
@@ -368,7 +383,6 @@ public final class FluidDebugCommand
             final double maxPressure = highest;
             final double minTemperature = coldest == Double.MAX_VALUE ? 0.0 : coldest;
             final double maxTemperature = hottest;
-
             final String state = graph.isAsleep(component) ? ChatFormatting.DARK_GRAY + "asleep" : ChatFormatting.GREEN + "awake";
 
             source.sendSuccess(() -> Component.literal(String.format("  " + ChatFormatting.GOLD + "net %-3d " + ChatFormatting.GRAY + "nodes = " + ChatFormatting.AQUA + "%-4d " + ChatFormatting.GRAY + "edges = " + ChatFormatting.AQUA + "%-4d " + ChatFormatting.GRAY + "V = " + ChatFormatting.AQUA + "%9.1f L " + ChatFormatting.GRAY + "n = " + ChatFormatting.AQUA + "%9.3f mol " + ChatFormatting.GRAY + "P = " + ChatFormatting.GREEN + "%.5f" + ChatFormatting.GRAY + " .. " + ChatFormatting.GREEN + "%.5f P " + ChatFormatting.GRAY + "T = " + ChatFormatting.GREEN + "%.1f" + ChatFormatting.GRAY + " .. " + ChatFormatting.GREEN + "%.1f K " + ChatFormatting.GRAY + "| %s", component, partition.nodeCount(component), partition.edgeCount(component), totalVolume, totalMoles, minPressure, maxPressure, minTemperature, maxTemperature, state)), false);

@@ -7,7 +7,7 @@ public final class FluidSolver
     public static final double EPSILON = 1.0e-7;
     public static final float UNDIRECTED = -1.0f;
 
-    public static double sweep(FluidNodeStore store, int[] edgeOrder, int from, int to, int[] edgeA, int[] edgeB, float[] conductance, float[] boost, float[] molarHeat, float thermalConductance, double potentialEpsilon, double temperatureEpsilon)
+    public static double sweep(FluidNodeStore store, int[] edgeOrder, int from, int to, int[] edgeA, int[] edgeB, float[] conductance, float[] boost, float[] molarHeat, float thermalConductance, double potentialEpsilon, double temperatureEpsilon, float diffusion, double fractionEpsilon)
     {
         double activity = 0.0;
         int stride = store.getStride();
@@ -20,6 +20,12 @@ public final class FluidSolver
 
             if (!store.alive(a) || !store.alive(b)) continue;
 
+            if (diffusion > 0.0f && boost[edge] < 0.0f)
+            {
+                double mixing = FluidDiffusion.mix(store, a, b, diffusion * conductance[edge], molarHeat);
+                if (mixing / fractionEpsilon > activity) activity = mixing / fractionEpsilon;
+            }
+
             double potentialA = FluidPotential.of(store, a);
             double potentialB = FluidPotential.of(store, b);
 
@@ -27,7 +33,7 @@ public final class FluidSolver
             boolean directed = drive >= 0.0f;
             double gap = directed ? (potentialA + drive) - potentialB : potentialA - potentialB;
 
-            if (directed && gap <= 0.0)
+            if (directed && (gap <= 0.0 || store.moles(a) <= 0.0f))
             {
                 double temperatureIdle = Math.abs(store.temperature(a) - store.temperature(b));
                 if (temperatureIdle / temperatureEpsilon > activity) activity = temperatureIdle / temperatureEpsilon;
