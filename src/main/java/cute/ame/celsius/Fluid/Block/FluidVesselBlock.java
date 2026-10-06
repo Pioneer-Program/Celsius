@@ -20,6 +20,10 @@ public abstract class FluidVesselBlock extends Block implements EntityBlock
     public static final int NO_PORTS = 0;
     public static final int ALL_PORTS = 0b111111;
 
+    public static final int BRIDGE_BOTH = 0;
+    public static final int BRIDGE_TO_ROOM = 1;
+    public static final int BRIDGE_FROM_ROOM = 2;
+
     protected FluidVesselBlock(BlockBehaviour.Properties properties)
     {
         super(properties);
@@ -83,6 +87,11 @@ public abstract class FluidVesselBlock extends Block implements EntityBlock
     public @Nullable BlockPos roomMouth(BlockPos pos, BlockState state)
     {
         return null;
+    }
+
+    public int bridgeFlow(BlockState state)
+    {
+        return BRIDGE_BOTH;
     }
 
     public int bridgeNode(ServerLevel level, BlockPos pos, BlockState state)

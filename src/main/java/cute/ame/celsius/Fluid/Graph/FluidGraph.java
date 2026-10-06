@@ -4,16 +4,15 @@ import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
 import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Data.SpeciesTable;
-import cute.ame.celsius.Fluid.Registry.FluidSpecies;
 import cute.ame.celsius.Fluid.Physics.ComponentPartition;
 import cute.ame.celsius.Fluid.Physics.FluidSolver;
+import cute.ame.celsius.Fluid.Registry.FluidSpecies;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -295,7 +294,11 @@ public final class FluidGraph
             int bridge = vessel.bridgeNode(level, pos, state);
             if (bridge != FluidNodeStore.INVALID)
             {
-                addEdge(node, bridge, here, FluidSolver.UNDIRECTED);
+                int flow = vessel.bridgeFlow(state);
+                if (flow == FluidVesselBlock.BRIDGE_TO_ROOM) addEdge(node, bridge, here, 0.0f);
+                else if (flow == FluidVesselBlock.BRIDGE_FROM_ROOM) addEdge(bridge, node, here, 0.0f);
+                else addEdge(node, bridge, here, FluidSolver.UNDIRECTED);
+
                 if (bridge > maxNodeId) maxNodeId = bridge;
 
                 if (bridge < seen.length && !seen[bridge])

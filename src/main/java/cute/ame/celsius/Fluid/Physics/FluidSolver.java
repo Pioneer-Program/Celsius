@@ -20,7 +20,7 @@ public final class FluidSolver
 
             if (!store.alive(a) || !store.alive(b)) continue;
 
-            if (diffusion > 0.0f)
+            if (diffusion > 0.0f && boost[edge] < 0.0f)
             {
                 double mixing = FluidDiffusion.mix(store, a, b, diffusion * conductance[edge], molarHeat);
                 if (mixing / fractionEpsilon > activity) activity = mixing / fractionEpsilon;
