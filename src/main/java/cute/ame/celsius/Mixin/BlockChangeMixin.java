@@ -1,6 +1,6 @@
 package cute.ame.celsius.Mixin;
 
-import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
+import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
 import cute.ame.celsius.Thermal.Level.ThermalLevelData;
@@ -35,7 +35,7 @@ public abstract class BlockChangeMixin
             return;
         }
 
-        if (state.getBlock() instanceof FluidVesselBlock vessel && vessel.ports(previous) != vessel.ports(state))
+        if (state.getBlock() instanceof IFluidVesselBlock vessel && vessel.ports(previous) != vessel.ports(state))
         {
             FluidLevelData fluids = FluidLevelData.getIfPresent(serverLevel);
             if (fluids != null) fluids.graph().invalidateAt(pos);

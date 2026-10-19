@@ -1,7 +1,7 @@
 package cute.ame.celsius.Fluid.Graph;
 
-import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
+import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Data.SpeciesTable;
 import cute.ame.celsius.Fluid.Physics.ComponentPartition;
@@ -30,16 +30,16 @@ public final class FluidGraph
 
     private static final int[] FORWARD_PORT =
     {
-            FluidVesselBlock.port(Direction.EAST),
-            FluidVesselBlock.port(Direction.UP),
-            FluidVesselBlock.port(Direction.SOUTH)
+            IFluidVesselBlock.port(Direction.EAST),
+            IFluidVesselBlock.port(Direction.UP),
+            IFluidVesselBlock.port(Direction.SOUTH)
     };
 
     private static final int[] BACKWARD_PORT =
     {
-            FluidVesselBlock.port(Direction.WEST),
-            FluidVesselBlock.port(Direction.DOWN),
-            FluidVesselBlock.port(Direction.NORTH)
+            IFluidVesselBlock.port(Direction.WEST),
+            IFluidVesselBlock.port(Direction.DOWN),
+            IFluidVesselBlock.port(Direction.NORTH)
     };
 
     public static final double SETTLED = 1.0;
@@ -266,7 +266,7 @@ public final class FluidGraph
         {
             BlockPos pos = BlockPos.of(packed);
             BlockState state = level.getBlockState(pos);
-            if (!(state.getBlock() instanceof FluidVesselBlock vessel)) continue;
+            if (!(state.getBlock() instanceof IFluidVesselBlock vessel)) continue;
 
             int node = nodeAt(level, pos, store);
             if (node == FluidNodeStore.INVALID) continue;
@@ -295,8 +295,8 @@ public final class FluidGraph
             if (bridge != FluidNodeStore.INVALID)
             {
                 int flow = vessel.bridgeFlow(state);
-                if (flow == FluidVesselBlock.BRIDGE_TO_ROOM) addEdge(node, bridge, here, 0.0f);
-                else if (flow == FluidVesselBlock.BRIDGE_FROM_ROOM) addEdge(bridge, node, here, 0.0f);
+                if (flow == IFluidVesselBlock.BRIDGE_TO_ROOM) addEdge(node, bridge, here, 0.0f);
+                else if (flow == IFluidVesselBlock.BRIDGE_FROM_ROOM) addEdge(bridge, node, here, 0.0f);
                 else addEdge(node, bridge, here, FluidSolver.UNDIRECTED);
 
                 if (bridge > maxNodeId) maxNodeId = bridge;
@@ -310,10 +310,10 @@ public final class FluidGraph
             }
 
             int ports = vessel.ports(state);
-            if (ports == FluidVesselBlock.NO_PORTS) continue;
+            if (ports == IFluidVesselBlock.NO_PORTS) continue;
 
             int filters = vessel.filterPorts(state) & ports;
-            if (filters != FluidVesselBlock.NO_PORTS) maxNodeId = Math.max(maxNodeId, addFilterLinks(level, store, pos, state, vessel, filters, node));
+            if (filters != IFluidVesselBlock.NO_PORTS) maxNodeId = Math.max(maxNodeId, addFilterLinks(level, store, pos, state, vessel, filters, node));
 
             int open = ports & ~filters;
 
@@ -332,7 +332,7 @@ public final class FluidGraph
                 if (!vessels.contains(cursor.asLong())) continue;
 
                 BlockState neighbourState = level.getBlockState(cursor);
-                if (!(neighbourState.getBlock() instanceof FluidVesselBlock neighbourVessel)) continue;
+                if (!(neighbourState.getBlock() instanceof IFluidVesselBlock neighbourVessel)) continue;
                 if (neighbourVessel.outlet(neighbourState) != null) continue;
                 if ((openPorts(neighbourVessel, neighbourState) & BACKWARD_PORT[d]) == 0) continue;
 
@@ -371,14 +371,14 @@ public final class FluidGraph
     private int addDirectedEdges(ServerLevel level, FluidNodeStore store, BlockPos pos, Direction outlet, @Nullable Direction inlet, int ports, int node, float conductance, float boost)
     {
         int max = node;
-        if ((ports & FluidVesselBlock.port(outlet)) != 0)
+        if ((ports & IFluidVesselBlock.port(outlet)) != 0)
         {
             int edge = edgeCount;
             max = Math.max(max, linkDirected(level, store, pos.relative(outlet), outlet.getOpposite(), node, conductance, boost, true));
             if (edgeCount > edge) outletEdge.put(pos.asLong(), edge);
         }
 
-        if (inlet != null && inlet != outlet && (ports & FluidVesselBlock.port(inlet)) != 0) max = Math.max(max, linkDirected(level, store, pos.relative(inlet), inlet.getOpposite(), node, conductance, 0.0f, false));
+        if (inlet != null && inlet != outlet && (ports & IFluidVesselBlock.port(inlet)) != 0) max = Math.max(max, linkDirected(level, store, pos.relative(inlet), inlet.getOpposite(), node, conductance, 0.0f, false));
 
         return max;
     }
@@ -406,8 +406,8 @@ public final class FluidGraph
         if (!vessels.contains(side.asLong())) return node;
 
         BlockState state = level.getBlockState(side);
-        if (!(state.getBlock() instanceof FluidVesselBlock vessel)) return node;
-        if ((openPorts(vessel, state) & FluidVesselBlock.port(face)) == 0) return node;
+        if (!(state.getBlock() instanceof IFluidVesselBlock vessel)) return node;
+        if ((openPorts(vessel, state) & IFluidVesselBlock.port(face)) == 0) return node;
 
         float there = vessel.conductance(level, side, state);
         if (there <= 0.0f) return node;
@@ -422,7 +422,7 @@ public final class FluidGraph
         return other;
     }
 
-    private int addFilterLinks(ServerLevel level, FluidNodeStore store, BlockPos pos, BlockState state, FluidVesselBlock vessel, int filters, int node)
+    private int addFilterLinks(ServerLevel level, FluidNodeStore store, BlockPos pos, BlockState state, IFluidVesselBlock vessel, int filters, int node)
     {
         int species = resolve(vessel.filterSpecies(level, pos, state));
         float rate = vessel.filterRate(level, pos, state);
@@ -433,14 +433,14 @@ public final class FluidGraph
         BlockPos.MutableBlockPos side = new BlockPos.MutableBlockPos();
         for (Direction direction : DIRECTIONS)
         {
-            if ((filters & FluidVesselBlock.port(direction)) == 0) continue;
+            if ((filters & IFluidVesselBlock.port(direction)) == 0) continue;
 
             side.setWithOffset(pos, direction);
             if (!vessels.contains(side.asLong())) continue;
 
             BlockState neighbourState = level.getBlockState(side);
-            if (!(neighbourState.getBlock() instanceof FluidVesselBlock neighbourVessel)) continue;
-            if ((neighbourVessel.ports(neighbourState) & FluidVesselBlock.port(direction.getOpposite())) == 0) continue;
+            if (!(neighbourState.getBlock() instanceof IFluidVesselBlock neighbourVessel)) continue;
+            if ((neighbourVessel.ports(neighbourState) & IFluidVesselBlock.port(direction.getOpposite())) == 0) continue;
 
             int other = nodeAt(level, side, store);
             if (other == FluidNodeStore.INVALID || other == node) continue;
@@ -480,7 +480,7 @@ public final class FluidGraph
         return key == null || key.isEmpty() ? SpeciesTable.UNKNOWN : FluidSpecies.active().indexOf(key);
     }
 
-    private static int openPorts(FluidVesselBlock vessel, BlockState state)
+    private static int openPorts(IFluidVesselBlock vessel, BlockState state)
     {
         return vessel.ports(state) & ~vessel.filterPorts(state);
     }
@@ -537,7 +537,7 @@ public final class FluidGraph
 
     private static int nodeAt(ServerLevel level, BlockPos pos, FluidNodeStore store)
     {
-        if (!(level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vessel)) return FluidNodeStore.INVALID;
+        if (!(level.getBlockEntity(pos) instanceof IFluidVesselBlockEntity vessel)) return FluidNodeStore.INVALID;
 
         return store.resolve(vessel.getNodeHandle());
     }

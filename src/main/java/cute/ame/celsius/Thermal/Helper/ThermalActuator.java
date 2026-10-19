@@ -3,7 +3,7 @@ package cute.ame.celsius.Thermal.Helper;
 import cute.ame.celsius.Config;
 import cute.ame.celsius.Core.Thermal.BlockHeatSink;
 import cute.ame.celsius.Core.Thermal.BlockTemperature;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
 import cute.ame.celsius.Fluid.Physics.FluidHeat;
@@ -81,7 +81,7 @@ public final class ThermalActuator
         for (Direction face : DIRECTIONS)
         {
             cursor.setWithOffset(pos, face);
-            if (!(level.getBlockEntity(cursor) instanceof FluidVesselBlockEntity vessel)) continue;
+            if (!(level.getBlockEntity(cursor) instanceof IFluidVesselBlockEntity vessel)) continue;
 
             int node = store.resolve(vessel.getNodeHandle());
             if (node != FluidNodeStore.INVALID && store.moles(node) > 0.0f) return node;

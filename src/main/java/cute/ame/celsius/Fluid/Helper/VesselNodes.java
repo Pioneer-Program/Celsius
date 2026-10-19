@@ -1,12 +1,13 @@
 package cute.ame.celsius.Fluid.Helper;
 
 import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 
 import cute.ame.celsius.Config;
 import cute.ame.celsius.Core.Event.NodeLifecycleEvent;
 import cute.ame.celsius.Core.Thermal.Ambient;
 import cute.ame.celsius.Core.Thermal.Residency;
+import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Registry.FluidSpecies;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
@@ -29,7 +30,7 @@ public final class VesselNodes
 {
     private static final Direction[] DIRECTIONS = Direction.values();
 
-    public static void onLoaded(ServerLevel level, BlockPos pos, FluidVesselBlockEntity be)
+    public static void onLoaded(ServerLevel level, BlockPos pos, IFluidVesselBlockEntity be)
     {
         FluidLevelData data = FluidLevelData.get(level);
 
@@ -39,10 +40,10 @@ public final class VesselNodes
         settle(level, data, pos, be);
     }
 
-    static void settle(ServerLevel level, FluidLevelData data, BlockPos pos, FluidVesselBlockEntity be)
+    static void settle(ServerLevel level, FluidLevelData data, BlockPos pos, IFluidVesselBlockEntity be)
     {
         BlockState state = level.getBlockState(pos);
-        if (!(state.getBlock() instanceof FluidVesselBlock block)) return;
+        if (!(state.getBlock() instanceof IFluidVesselBlock block)) return;
 
         BlockPos mouth = block.roomMouth(pos, state);
         if (mouth != null)
@@ -91,7 +92,7 @@ public final class VesselNodes
         BlockPos mouth = block.roomMouth(pos, state);
         if (mouth != null) detachRoom(level, data, pos, mouth);
 
-        FluidVesselBlockEntity be = vesselAt(level, pos);
+        IFluidVesselBlockEntity be = vesselAt(level, pos);
         int nodeId = be == null ? FluidNodeStore.INVALID : store.resolve(be.getNodeHandle());
         if (nodeId == FluidNodeStore.INVALID) return;
 
@@ -130,7 +131,7 @@ public final class VesselNodes
             if (side.equals(pos)) continue;
 
             BlockState neighbour = level.getBlockState(side);
-            if (!(neighbour.getBlock() instanceof FluidVesselBlock other)) continue;
+            if (!(neighbour.getBlock() instanceof IFluidVesselBlock other)) continue;
 
             BlockPos otherMouth = other.roomMouth(side, neighbour);
             if (otherMouth != null && rooms.nodeAt(otherMouth) == nodeId) return;
@@ -140,7 +141,7 @@ public final class VesselNodes
         data.graph().invalidate();
     }
 
-    private static void adopt(ServerLevel level, FluidLevelData data, BlockPos pos, FluidVesselBlock block)
+    private static void adopt(ServerLevel level, FluidLevelData data, BlockPos pos, IFluidVesselBlock block)
     {
         FluidNodeStore store = data.store();
 
@@ -150,7 +151,7 @@ public final class VesselNodes
             BlockPos side = pos.relative(direction);
             if (!sameCluster(level, side, block)) continue;
 
-            FluidVesselBlockEntity be = vesselAt(level, side);
+            IFluidVesselBlockEntity be = vesselAt(level, side);
             if (be == null) continue;
 
             int nodeId = store.resolve(be.getNodeHandle());
@@ -171,7 +172,7 @@ public final class VesselNodes
         long handle = store.handle(nodeId);
         for (long packed : cluster(level, pos, block))
         {
-            FluidVesselBlockEntity be = vesselAt(level, BlockPos.of(packed));
+            IFluidVesselBlockEntity be = vesselAt(level, BlockPos.of(packed));
             if (be != null) be.setNodeHandle(handle);
         }
 
@@ -269,7 +270,7 @@ public final class VesselNodes
             long handle = store.handle(target);
             for (long packed : piece)
             {
-                FluidVesselBlockEntity be = vesselAt(level, BlockPos.of(packed));
+                IFluidVesselBlockEntity be = vesselAt(level, BlockPos.of(packed));
                 if (be != null) be.setNodeHandle(handle);
             }
         }
@@ -277,7 +278,7 @@ public final class VesselNodes
         NeoForge.EVENT_BUS.post(new NodeLifecycleEvent.Split(level, nodeId, store.handle(nodeId), parts));
     }
 
-    private static LongOpenHashSet cluster(ServerLevel level, BlockPos origin, FluidVesselBlock block)
+    private static LongOpenHashSet cluster(ServerLevel level, BlockPos origin, IFluidVesselBlock block)
     {
         LongOpenHashSet visited = new LongOpenHashSet();
         if (!sameCluster(level, origin, block)) return visited;
@@ -312,17 +313,17 @@ public final class VesselNodes
         return visited;
     }
 
-    private static boolean sameCluster(ServerLevel level, BlockPos pos, FluidVesselBlock block)
+    private static boolean sameCluster(ServerLevel level, BlockPos pos, IFluidVesselBlock block)
     {
         if (!block.merges()) return false;
         if (!Residency.isLoaded(level, pos)) return false;
 
-        return level.getBlockState(pos).is(block);
+        return level.getBlockState(pos).getBlock() == block;
     }
 
-    private static @Nullable FluidVesselBlockEntity vesselAt(ServerLevel level, BlockPos pos)
+    private static @Nullable IFluidVesselBlockEntity vesselAt(ServerLevel level, BlockPos pos)
     {
-        return level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vessel ? vessel : null;
+        return level.getBlockEntity(pos) instanceof IFluidVesselBlockEntity vessel ? vessel : null;
     }
 
     private static double heatCapacity(FluidNodeStore store, int nodeId, SpeciesTable table)

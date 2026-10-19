@@ -1,12 +1,12 @@
 package cute.ame.celsius.Fluid.Helper;
 
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidConstants;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Registry.FluidSpecies;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
 import cute.ame.celsius.Fluid.Data.SpeciesTable;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -34,7 +34,7 @@ public final class SensorReadings
         {
             BlockPos side = pos.relative(direction);
 
-            if (level.getBlockEntity(side) instanceof FluidVesselBlockEntity vessel)
+            if (level.getBlockEntity(side) instanceof IFluidVesselBlockEntity vessel)
             {
                 int node = store.resolve(vessel.getNodeHandle());
                 if (node != FluidNodeStore.INVALID) return node;

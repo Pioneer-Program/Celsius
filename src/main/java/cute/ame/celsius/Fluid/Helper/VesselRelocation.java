@@ -1,7 +1,7 @@
 package cute.ame.celsius.Fluid.Helper;
 
-import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
+import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Graph.FluidGraph;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
@@ -59,7 +59,7 @@ public final class VesselRelocation implements AutoCloseable
 
         for (BlockPos pos : blocks)
         {
-            if (!(level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vessel)) continue;
+            if (!(level.getBlockEntity(pos) instanceof IFluidVesselBlockEntity vessel)) continue;
 
             long handle = vessel.getNodeHandle();
             long target = route.apply(pos).asLong();
@@ -70,7 +70,7 @@ public final class VesselRelocation implements AutoCloseable
             if (rooms == null) continue;
 
             BlockState state = level.getBlockState(pos);
-            if (!(state.getBlock() instanceof FluidVesselBlock block)) continue;
+            if (!(state.getBlock() instanceof IFluidVesselBlock block)) continue;
 
             BlockPos mouth = block.roomMouth(pos, state);
             if (mouth == null) continue;
@@ -116,7 +116,7 @@ public final class VesselRelocation implements AutoCloseable
             if (handle == NO_HANDLE || store.resolve(handle) == FluidNodeStore.INVALID) continue;
 
             BlockPos pos = BlockPos.of(entry.getLongKey());
-            if (!(level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vessel)) continue;
+            if (!(level.getBlockEntity(pos) instanceof IFluidVesselBlockEntity vessel)) continue;
 
             vessel.setNodeHandle(handle);
             graph.track(pos);
@@ -133,7 +133,7 @@ public final class VesselRelocation implements AutoCloseable
 
                 BlockPos pos = BlockPos.of(entry.getLongKey());
                 BlockState state = level.getBlockState(pos);
-                if (!(state.getBlock() instanceof FluidVesselBlock block)) continue;
+                if (!(state.getBlock() instanceof IFluidVesselBlock block)) continue;
 
                 BlockPos mouth = block.roomMouth(pos, state);
                 if (mouth != null) rooms.relocate(level, entry.getIntValue(), mouth);
@@ -145,7 +145,7 @@ public final class VesselRelocation implements AutoCloseable
         for (int i = 0; i < arrivalCount; i++)
         {
             BlockPos pos = BlockPos.of(arrivals[i]);
-            if (level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vessel) VesselNodes.settle(level, data, pos, vessel);
+            if (level.getBlockEntity(pos) instanceof IFluidVesselBlockEntity vessel) VesselNodes.settle(level, data, pos, vessel);
         }
 
         graph.invalidate();

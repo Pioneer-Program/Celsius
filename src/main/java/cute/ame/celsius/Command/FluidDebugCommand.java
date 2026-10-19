@@ -10,6 +10,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import cute.ame.celsius.Config;
 import cute.ame.celsius.Core.Thermal.Ambient;
+import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.AmbientState;
 import cute.ame.celsius.Fluid.Data.FluidConstants;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
@@ -19,8 +21,6 @@ import cute.ame.celsius.Fluid.Physics.ComponentPartition;
 import cute.ame.celsius.Fluid.Graph.FluidGraph;
 import cute.ame.celsius.Fluid.Physics.FluidHeat;
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
-import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Data.SpeciesTable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -305,7 +305,7 @@ public final class FluidDebugCommand
         ServerLevel level = ctx.getSource().getLevel();
         BlockPos pos = BlockPosArgument.getLoadedBlockPos(ctx, "pos");
 
-        if (!(level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vessel))
+        if (!(level.getBlockEntity(pos) instanceof IFluidVesselBlockEntity vessel))
         {
             ctx.getSource().sendFailure(Component.literal(ERROR_PREFIX + "no fluid vessel at " + pos.toShortString()));
             return 0;
@@ -321,7 +321,7 @@ public final class FluidDebugCommand
         }
 
         BlockState state = level.getBlockState(pos);
-        String ports = state.getBlock() instanceof FluidVesselBlock block ? ports(block.ports(state)) : "------";
+        String ports = state.getBlock() instanceof IFluidVesselBlock block ? ports(block.ports(state)) : "------";
 
         ctx.getSource().sendSuccess(() -> Component.literal(PREFIX + String.format(ChatFormatting.WHITE + "vessel " + ChatFormatting.DARK_GRAY + "%s " + ChatFormatting.GRAY + "-> node " + ChatFormatting.GOLD + "#%d " + ChatFormatting.GRAY + "| V = " + ChatFormatting.AQUA + "%.1f L " + ChatFormatting.GRAY + "| n = " + ChatFormatting.AQUA + "%.4f mol " + ChatFormatting.GRAY + "| P = " + ChatFormatting.GREEN + "%.5f P " + ChatFormatting.GRAY + "| bursts at " + ChatFormatting.RED + "%.2f P " + ChatFormatting.GRAY + "| ports " + ChatFormatting.YELLOW + "%s", pos.toShortString(), nodeId, store.volume(nodeId), store.moles(nodeId), store.pressure(nodeId), vessel.getBurstPressure(), ports)), false);
         return nodeId + 1;
@@ -332,7 +332,7 @@ public final class FluidDebugCommand
         char[] out = new char[6];
         for (Direction direction : Direction.values())
         {
-            out[direction.get3DDataValue()] = (mask & FluidVesselBlock.port(direction)) != 0 ? Character.toUpperCase(direction.getName().charAt(0)) : '-';
+            out[direction.get3DDataValue()] = (mask & IFluidVesselBlock.port(direction)) != 0 ? Character.toUpperCase(direction.getName().charAt(0)) : '-';
         }
         return new String(out);
     }
