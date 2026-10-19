@@ -1,7 +1,7 @@
 package cute.ame.celsius.Fluid.BlockEntity;
 
 import cute.ame.celsius.Config;
-import cute.ame.celsius.Fluid.Block.FluidVesselBlock;
+import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
 import cute.ame.celsius.Fluid.Helper.VesselNodes;
 import cute.ame.celsius.Fluid.Physics.BurstRule;
 import net.minecraft.core.BlockPos;
@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-public class FluidVesselBlockEntity extends BlockEntity
+public class FluidVesselBlockEntity extends BlockEntity implements IFluidVesselBlockEntity
 {
     private static final String K_NODE = "node";
     private static final String K_BURST = "burst";
@@ -26,32 +26,32 @@ public class FluidVesselBlockEntity extends BlockEntity
         super(type, pos, state);
     }
 
-    public long getNodeHandle()
+    @Override public long getNodeHandle()
     {
         return node;
     }
 
-    public void setNodeHandle(long handle)
+    @Override public void setNodeHandle(long handle)
     {
         this.node = handle;
         setChanged();
     }
 
-    public float getBurstPressure()
+    @Override public float getBurstPressure()
     {
         return burst;
     }
 
-    public void setBurstPressure(float pressure)
+    @Override public void setBurstPressure(float pressure)
     {
         this.burst = pressure;
         setChanged();
     }
 
-    public void rollBurstPressure(ServerLevel level)
+    @Override public void rollBurstPressure(ServerLevel level)
     {
         if (burst > 0.0f) return;
-        if (!(getBlockState().getBlock() instanceof FluidVesselBlock vessel)) return;
+        if (!(getBlockState().getBlock() instanceof IFluidVesselBlock vessel)) return;
 
         float amplitude = Config.BURST_JITTER.get().floatValue();
         setBurstPressure(BurstRule.jitter(vessel.getNominalBurstPressure(), amplitude, level.getRandom().nextFloat()));

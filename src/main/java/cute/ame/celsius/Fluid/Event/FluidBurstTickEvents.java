@@ -1,5 +1,6 @@
 package cute.ame.celsius.Fluid.Event;
 
+import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
 import cute.ame.celsius.Fluid.Physics.BurstRule;
 
 import cute.ame.celsius.Config;
@@ -8,7 +9,6 @@ import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 import cute.ame.celsius.Fluid.Physics.ComponentPartition;
 import cute.ame.celsius.Fluid.Graph.FluidGraph;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
-import cute.ame.celsius.Fluid.BlockEntity.FluidVesselBlockEntity;
 import cute.ame.celsius.Celsius;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -78,7 +78,7 @@ public final class FluidBurstTickEvents
         for (int i = from; i < to; i++)
         {
             long packed = vessels[i];
-            if (!(level.getBlockEntity(BlockPos.of(packed)) instanceof FluidVesselBlockEntity vessel)) continue;
+            if (!(level.getBlockEntity(BlockPos.of(packed)) instanceof IFluidVesselBlockEntity vessel)) continue;
 
             positions[found] = packed;
             limits[found] = vessel.getBurstPressure();

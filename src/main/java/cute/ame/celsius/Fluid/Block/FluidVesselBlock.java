@@ -15,86 +15,66 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class FluidVesselBlock extends Block implements EntityBlock
+public abstract class FluidVesselBlock extends Block implements EntityBlock, IFluidVesselBlock
 {
-    public static final int NO_PORTS = 0;
-    public static final int ALL_PORTS = 0b111111;
-
-    public static final int BRIDGE_BOTH = 0;
-    public static final int BRIDGE_TO_ROOM = 1;
-    public static final int BRIDGE_FROM_ROOM = 2;
 
     protected FluidVesselBlock(BlockBehaviour.Properties properties)
     {
         super(properties);
     }
 
-    public abstract float getVolumeLitres();
-
-    public abstract boolean merges();
-
-    // value between (0, 1]
-    public abstract float getConductance();
-
-    public abstract float getNominalBurstPressure();
-
-    public float conductance(Level level, BlockPos pos, BlockState state)
+    @Override public float conductance(Level level, BlockPos pos, BlockState state)
     {
         return getConductance();
     }
 
-    public static int port(Direction direction)
-    {
-        return 1 << direction.get3DDataValue();
-    }
-
-    public int ports(BlockState state)
+    @Override public int ports(BlockState state)
     {
         return ALL_PORTS;
     }
 
-    public int filterPorts(BlockState state)
+    @Override public int filterPorts(BlockState state)
     {
         return NO_PORTS;
     }
 
-    public @Nullable String filterSpecies(Level level, BlockPos pos, BlockState state)
+    @Override public @Nullable String filterSpecies(Level level, BlockPos pos, BlockState state)
     {
         return null;
     }
 
-    public float filterRate(Level level, BlockPos pos, BlockState state)
+    @Override public float filterRate(Level level, BlockPos pos, BlockState state)
     {
         return 0.0f;
     }
 
-    public @Nullable Direction outlet(BlockState state)
+    @Override public @Nullable Direction outlet(BlockState state)
     {
         return null;
     }
 
-    public @Nullable Direction inlet(BlockState state)
+    @Override public @Nullable Direction inlet(BlockState state)
     {
         Direction outlet = outlet(state);
         return outlet == null ? null : outlet.getOpposite(); // not sure if it's a good idea tbh
     }
 
-    public float boost(Level level, BlockPos pos, BlockState state)
+    @Override public float boost(Level level, BlockPos pos, BlockState state)
     {
         return 0.0f;
     }
 
-    public @Nullable BlockPos roomMouth(BlockPos pos, BlockState state)
+    @Override public @Nullable BlockPos roomMouth(BlockPos pos, BlockState state)
     {
         return null;
     }
 
-    public int bridgeFlow(BlockState state)
+    @Override public int bridgeFlow(BlockState state)
     {
         return BRIDGE_BOTH;
     }
 
-    public int bridgeNode(ServerLevel level, BlockPos pos, BlockState state)
+    @Override public int bridgeNode(ServerLevel level, BlockPos pos, BlockState state)
     {
         BlockPos mouth = roomMouth(pos, state);
         if (mouth == null) return FluidNodeStore.INVALID;
@@ -103,8 +83,7 @@ public abstract class FluidVesselBlock extends Block implements EntityBlock
         return rooms == null ? FluidNodeStore.INVALID : rooms.nodeAt(mouth);
     }
 
-    @Override
-    public void onRemove(BlockState state, @NotNull Level level, @NotNull BlockPos pos, BlockState newState, boolean movedByPiston)
+    @Override public void onRemove(BlockState state, @NotNull Level level, @NotNull BlockPos pos, BlockState newState, boolean movedByPiston)
     {
         if (!state.is(newState.getBlock()))
         {
