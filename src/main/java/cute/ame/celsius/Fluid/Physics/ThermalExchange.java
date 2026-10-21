@@ -5,7 +5,7 @@ import cute.ame.celsius.Fluid.Data.FluidNodeStore;
 public final class ThermalExchange
 {
     public static final float EPSILON = 0.01f;
-    
+
     private static final float FLOOR_K = 0.1f;
 
     public static double apply(FluidNodeStore store, int nodeId, float blockKelvin, double blockCapacity, float[] molarHeat, float rate)
@@ -19,7 +19,7 @@ public final class ThermalExchange
         double step = rate <= 0.0f ? 0.0 : Math.min(rate, 1.0);
         if (step <= 0.0) return 0.0;
 
-        double fluidCapacity = FluidHeat.capacity(store, nodeId, molarHeat);
+        double fluidCapacity = FluidHeat.isochoricCapacity(store, nodeId, molarHeat);
         if (fluidCapacity <= 0.0) return 0.0;
 
         boolean bounded = Double.isFinite(blockCapacity) && blockCapacity > 0.0;

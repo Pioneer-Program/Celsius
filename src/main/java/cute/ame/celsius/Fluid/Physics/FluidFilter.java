@@ -19,7 +19,7 @@ public final class FluidFilter
         float moved = (float) (held * Math.min(rate, 1.0f) * (1.0 - downstream / upstream));
         if (moved <= 0.0f) return 0.0f;
 
-        double targetCapacity = FluidHeat.capacity(store, target, molarHeat);
+        double targetCapacity = FluidHeat.isochoricCapacity(store, target, molarHeat);
         double carriedCapacity = species < molarHeat.length ? moved * (double) molarHeat[species] : 0.0;
         float sourceTemperature = store.temperature(source);
         float targetTemperature = store.temperature(target);

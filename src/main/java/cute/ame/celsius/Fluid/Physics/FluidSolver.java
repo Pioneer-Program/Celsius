@@ -51,8 +51,8 @@ public final class FluidSolver
                 {
                     double moved = gap / slopes * conductance[edge];
 
-                    if (moved > 0.0) transfer(store, a, b, moved, stride, molarHeat);
-                    else if (moved < 0.0) transfer(store, b, a, -moved, stride, molarHeat);
+                    if (moved > 0.0) transfer(store, a, b, moved, stride, molarHeat, drive);
+                    else if (moved < 0.0) transfer(store, b, a, -moved, stride, molarHeat, 0.0f);
                 }
             }
 
@@ -65,16 +65,24 @@ public final class FluidSolver
         return activity;
     }
 
-    private static void transfer(FluidNodeStore store, int source, int target, double amount, int stride, float[] molarHeat)
+    private static void transfer(FluidNodeStore store, int source, int target, double amount, int stride, float[] molarHeat, float drive)
     {
         float available = store.moles(source);
         if (available <= 0.0f) return;
 
-        if (amount > available) amount = available;
+        double pSource = store.pressure(source);
+        double pTarget = store.pressure(target);
+        double g = FluidHeat.gamma(store, source, molarHeat);
+        float sourceTemp = store.temperature(source);
+        float targetTemp = store.temperature(target);
 
+        if (amount > available) amount = available;
         double scale = amount / available;
 
-        double movedHeat = 0.0;
+        double capacitySourceBefore = FluidHeat.isochoricCapacity(store, source, molarHeat);
+        double capacityTargetBefore = FluidHeat.isochoricCapacity(store, target, molarHeat);
+
+        double movedCapacity = 0.0;
         for (int s = 0; s < stride; s++)
         {
             float mol = store.amount(source, s);
@@ -86,24 +94,75 @@ public final class FluidSolver
             store.add(source, s, -moved);
             store.add(target, s, moved);
 
-            if (s < molarHeat.length) movedHeat += moved * molarHeat[s];
+            if (s < molarHeat.length) movedCapacity += moved * molarHeat[s];
         }
 
-        if (movedHeat <= 0.0) return;
+        if (movedCapacity <= 0.0) return;
 
-        double targetHeat = FluidHeat.capacity(store, target, molarHeat) - movedHeat;
-        if (targetHeat < 0.0) targetHeat = 0.0;
+        double capacitySourceAfter = FluidHeat.isochoricCapacity(store, source, molarHeat);
+        double capacityTargetAfter = capacityTargetBefore + movedCapacity;
 
-        double total = targetHeat + movedHeat;
-        if (total <= 0.0) return;
+        // Adiabatic Expansion/Compression only for gases, not liquids
+        if (!store.isLiquid(source) && !store.isLiquid(target) && g > 1.0)
+        {
+            float remainingMoles = store.moles(source);
 
-        store.setTemperature(target, (float) ((store.temperature(target) * targetHeat + store.temperature(source) * movedHeat) / total));
+            if (drive > 0.0f && pTarget > pSource)
+            {
+                // Active compressor / pump
+                float streamTemp = FluidHeat.dischargeTemperature(sourceTemp, pSource, pTarget, g);
+                if (remainingMoles > 0.001f)
+                {
+                    double fractionRemaining = remainingMoles / available;
+                    double newSourceTemp = Math.max(sourceTemp * Math.pow(fractionRemaining, g - 1.0), 1.0f);
+                    store.setTemperature(source, (float) newSourceTemp);
+                }
+
+                if (capacityTargetAfter > 0.0)
+                {
+                    double targetEnergy = capacityTargetBefore * targetTemp + movedCapacity * streamTemp;
+                    store.setTemperature(target, (float) Math.max(targetEnergy / capacityTargetAfter, 1.0f));
+                }
+            }
+            else
+            {
+                // Passive flow
+                double effectiveGamma = 1.0 + (g - 1.0) * 0.15; //0.15 was chosen just to stop crazy vent heating :P
+                double energySourceBefore = capacitySourceBefore * sourceTemp;
+                double newSourceTemp = sourceTemp;
+
+                if (remainingMoles > 0.001f)
+                {
+                    double fractionRemaining = remainingMoles / available;
+                    newSourceTemp = Math.max(sourceTemp * Math.pow(fractionRemaining, effectiveGamma - 1.0), 1.0f);
+                    store.setTemperature(source, (float) newSourceTemp);
+                }
+
+                double energySourceAfter = capacitySourceAfter * newSourceTemp;
+                double transferredEnergy = energySourceBefore - energySourceAfter;
+
+                if (capacityTargetAfter > 0.0)
+                {
+                    double targetEnergy = capacityTargetBefore * targetTemp + transferredEnergy;
+                    store.setTemperature(target, (float) Math.max(targetEnergy / capacityTargetAfter, 1.0f));
+                }
+            }
+        }
+        else
+        {
+            // Liquids or non-expanding fluids: simple sensible heat mixing
+            if (capacityTargetAfter > 0.0)
+            {
+                double targetEnergy = capacityTargetBefore * targetTemp + movedCapacity * sourceTemp;
+                store.setTemperature(target, (float) (targetEnergy / capacityTargetAfter));
+            }
+        }
     }
 
     private static void conduct(FluidNodeStore store, int a, int b, int stride, float[] molarHeat, float rate)
     {
-        double capacityA = FluidHeat.capacity(store, a, molarHeat);
-        double capacityB = FluidHeat.capacity(store, b, molarHeat);
+        double capacityA = FluidHeat.isochoricCapacity(store, a, molarHeat);
+        double capacityB = FluidHeat.isochoricCapacity(store, b, molarHeat);
 
         if (capacityA <= 0.0 || capacityB <= 0.0) return;
 

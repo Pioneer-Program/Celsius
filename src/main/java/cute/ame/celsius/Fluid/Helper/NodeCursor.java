@@ -112,7 +112,7 @@ public final class NodeCursor implements NodeEditor
     @Override
     public double heatCapacity()
     {
-        return FluidHeat.capacity(store, id, molarHeat);
+        return FluidHeat.isochoricCapacity(store, id, molarHeat);
     }
 
     @Override
@@ -146,7 +146,7 @@ public final class NodeCursor implements NodeEditor
         float moved = Math.min(mol, store.amount(id, species));
         if (moved <= 0.0f) return 0.0f;
 
-        double targetCapacity = FluidHeat.capacity(store, otherNode, molarHeat);
+        double targetCapacity = FluidHeat.isochoricCapacity(store, otherNode, molarHeat);
         double carriedCapacity = species < molarHeat.length ? moved * (double) molarHeat[species] : 0.0;
         float sourceTemperature = store.temperature(id);
         float targetTemperature = store.temperature(otherNode);

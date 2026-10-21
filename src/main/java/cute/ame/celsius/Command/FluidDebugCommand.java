@@ -182,7 +182,7 @@ public final class FluidDebugCommand
             return 1;
         }
 
-        double heatCapacity = FluidHeat.capacity(store, id, table.molarHeatRaw());
+        double heatCapacity = FluidHeat.isochoricCapacity(store, id, table.molarHeatRaw());
         source.sendSuccess(() -> Component.literal(String.format("  " + ChatFormatting.GRAY + "heat capacity " + ChatFormatting.AQUA + "%.1f J/K", heatCapacity)), false);
 
         for (int s = 0; s < store.getStride(); s++)
@@ -413,7 +413,7 @@ public final class FluidDebugCommand
         double joules = DoubleArgumentType.getDouble(ctx, "joules");
         float[] molarHeat = FluidSpecies.active().molarHeatRaw();
 
-        double capacity = FluidHeat.capacity(store, id, molarHeat);
+        double capacity = FluidHeat.isochoricCapacity(store, id, molarHeat);
         if (capacity <= 0.0)
         {
             ctx.getSource().sendFailure(Component.literal(ERROR_PREFIX + "node #" + id + " is empty - nothing to heat"));
