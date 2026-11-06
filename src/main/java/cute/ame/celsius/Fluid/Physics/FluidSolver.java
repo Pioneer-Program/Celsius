@@ -150,7 +150,7 @@ public final class FluidSolver
         }
         else
         {
-            // Liquids or non-expanding fluids: simple sensible heat mixing
+            // Liquids or non-expanding fluids
             if (capacityTargetAfter > 0.0)
             {
                 double targetEnergy = capacityTargetBefore * targetTemp + movedCapacity * sourceTemp;
