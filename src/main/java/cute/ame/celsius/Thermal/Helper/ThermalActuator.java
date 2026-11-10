@@ -52,7 +52,7 @@ public final class ThermalActuator
         if (!store.alive(node)) return 0.0;
 
         float[] molarHeat = FluidSpecies.active().molarHeatRaw();
-        double fluidCapacity = FluidHeat.capacity(store, node, molarHeat);
+        double fluidCapacity = FluidHeat.isochoricCapacity(store, node, molarHeat);
         if (fluidCapacity <= 0.0) return 0.0;
 
         double owed = (setpointK - store.temperature(node)) * fluidCapacity;

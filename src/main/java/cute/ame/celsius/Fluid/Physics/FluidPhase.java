@@ -21,7 +21,7 @@ public final class FluidPhase
             return false;
         }
 
-        double heatCapacity = FluidHeat.capacity(store, nodeId, table.molarHeatRaw());
+        double heatCapacity = FluidHeat.isochoricCapacity(store, nodeId, table.molarHeatRaw());
         if (heatCapacity <= 0.0) return false;
 
         boolean liquid = store.isLiquid(nodeId);

@@ -8,7 +8,10 @@ import cute.ame.celsius.Core.Thermal.Ambient;
 import cute.ame.celsius.Core.Thermal.Residency;
 import cute.ame.celsius.Fluid.Block.IFluidVesselBlock;
 import cute.ame.celsius.Fluid.BlockEntity.IFluidVesselBlockEntity;
+import cute.ame.celsius.Fluid.Data.AmbientState;
+import cute.ame.celsius.Fluid.Data.FluidConstants;
 import cute.ame.celsius.Fluid.Data.FluidNodeStore;
+import cute.ame.celsius.Fluid.Physics.FluidHeat;
 import cute.ame.celsius.Fluid.Registry.FluidSpecies;
 import cute.ame.celsius.Fluid.Level.FluidLevelData;
 import cute.ame.celsius.Fluid.Level.RoomLevelData;
@@ -57,7 +60,9 @@ public final class VesselNodes
 
         if (!block.merges())
         {
+            float volume = block.getVolumeLitres();
             int nodeId = store.create(block.getVolumeLitres(), ambientTemperature(level));
+            fillWithAtmosphere(level, store, nodeId, pos, volume);
             be.setNodeHandle(store.handle(nodeId));
             data.setDirty();
             return;
@@ -98,6 +103,9 @@ public final class VesselNodes
 
         float volume = store.volume(nodeId);
         float removed = Math.min(block.getVolumeLitres(), volume);
+        float fractionVented = removed / volume;
+
+        ventToRoom(level, data, store, pos, nodeId, fractionVented);
 
         scaleMatter(store, nodeId, (volume - removed) / volume);
 
@@ -161,12 +169,15 @@ public final class VesselNodes
         int nodeId;
         if (neighbours.isEmpty())
         {
-            nodeId = store.create(block.getVolumeLitres(), ambientTemperature(level));
+            float volume = block.getVolumeLitres();
+            nodeId = store.create(volume, ambientTemperature(level));
+            fillWithAtmosphere(level, store, nodeId, pos, volume);
         }
         else
         {
             nodeId = fold(level, store, neighbours);
             store.setVolume(nodeId, store.volume(nodeId) + block.getVolumeLitres());
+            fillWithAtmosphere(level, store, nodeId, pos, block.getVolumeLitres());
         }
 
         long handle = store.handle(nodeId);
@@ -357,5 +368,88 @@ public final class VesselNodes
     private static float ambientTemperature(ServerLevel level)
     {
         return Ambient.of(level).temperatureK();
+    }
+
+    private static void fillWithAtmosphere(ServerLevel level, FluidNodeStore store, int nodeId, BlockPos pos, float volumeLiters)
+    {
+        AmbientState ambient = Ambient.of(level);
+        if (ambient.vacuum()) return;
+
+        RoomLevelData rooms = RoomLevelData.getIfPresent(level);
+        int roomNode = rooms != null ? rooms.nodeAt(pos) : FluidNodeStore.INVALID;
+
+        double pressure;
+        float temperature;
+        boolean fromRoom = false;
+
+        if (roomNode != FluidNodeStore.INVALID && store.alive(roomNode) && store.moles(roomNode) > 0.0f)
+        {
+            pressure = store.pressure(roomNode);
+            temperature = store.temperature(roomNode);
+            fromRoom = true;
+        }
+        else
+        {
+            pressure = ambient.pressureP();
+            temperature = ambient.temperatureK();
+        }
+
+        if (pressure <= 0.0 || temperature <= 0.0f || volumeLiters <= 0.0f) return;
+
+        double totalMoles = (pressure * volumeLiters) / (FluidConstants.R * temperature);
+        if (totalMoles <= 0.0) return;
+
+        store.setTemperature(nodeId, temperature);
+
+        int stride = store.getStride();
+        for (int s = 0; s < stride; s++)
+        {
+            float fraction = fromRoom ? store.fraction(roomNode, s) : ambient.fraction(s);
+            if (fraction > 0.0f) store.add(nodeId, s, (float) (totalMoles * fraction));
+        }
+    }
+
+    private static void ventToRoom(ServerLevel level, FluidLevelData data, FluidNodeStore store, BlockPos pos, int vesselNode, float fractionVented)
+    {
+        if (fractionVented > 0.0f || store.moles(vesselNode) <= 0.0f) return;
+
+        RoomLevelData rooms = RoomLevelData.getIfPresent(level);
+        if (rooms == null) return;
+
+        int roomNode = rooms.nodeAt(pos);
+        if (roomNode == FluidNodeStore.INVALID || !store.alive(roomNode)) return;
+
+        float[] molarHeat = FluidSpecies.active().molarHeatRaw();
+        int stride = store.getStride();
+
+        float vesselTemp = store.temperature(vesselNode);
+        float roomTemp = store.temperature(roomNode);
+
+        double roomCapacityBefore = FluidHeat.isochoricCapacity(store, roomNode, molarHeat);
+        double ventedCapcity = 0.0;
+
+        for (int s = 0; s < stride; s++)
+        {
+            float mol = store.amount(vesselNode, s);
+            if (mol <= 0.0f) continue;
+
+            float venting = mol * fractionVented;
+            if (venting <= 0.0f) continue;
+
+            store.add(roomNode, s, venting);
+
+            if (s < molarHeat.length)
+            {
+                ventedCapcity += venting * molarHeat[s];
+            }
+        }
+
+        double roomCapacityAfter = ventedCapcity + roomCapacityBefore;
+        if (roomCapacityAfter > 0.0)
+        {
+            double newRoomEnergy = (roomCapacityBefore * roomTemp) + (ventedCapcity * vesselTemp);
+            store.setTemperature(roomNode, (float) Math.max(newRoomEnergy / roomCapacityAfter, 1.0f));
+        }
+        data.touch(roomNode);
     }
 }

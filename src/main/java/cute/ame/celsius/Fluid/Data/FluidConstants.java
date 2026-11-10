@@ -3,6 +3,7 @@ package cute.ame.celsius.Fluid.Data;
 public final class FluidConstants
 {
     public static final double R = 0.0820573;
+    public static final double R_JOULES = 8.314462; //J / (mol * K)
     public static final float MIN_VOLUME_L = 1.0e-3f;
     public static final float TANK_VOLUME_L = 1000.0f;
     public static final float PIPE_VOLUME_L = 100.0f;

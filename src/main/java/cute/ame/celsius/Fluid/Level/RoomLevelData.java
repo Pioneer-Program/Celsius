@@ -312,8 +312,8 @@ public final class RoomLevelData extends SavedData
         if (store.alive(owner) && store.moles(nodeId) > 0.0f)
         {
             float[] molarHeat = FluidSpecies.active().molarHeatRaw();
-            double capacityOwner = FluidHeat.capacity(store, owner, molarHeat);
-            double capacityFolded = FluidHeat.capacity(store, nodeId, molarHeat);
+            double capacityOwner = FluidHeat.isochoricCapacity(store, owner, molarHeat);
+            double capacityFolded = FluidHeat.isochoricCapacity(store, nodeId, molarHeat);
             double total = capacityOwner + capacityFolded;
 
             if (total > 0.0) store.setTemperature(owner, (float) ((store.temperature(owner) * capacityOwner + store.temperature(nodeId) * capacityFolded) / total));
